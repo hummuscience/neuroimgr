@@ -1,0 +1,19 @@
+Package: neuroimgr
+Type: Package
+Title: A calcium- and voltage-imaging data post-processing package
+Version: 0.1.1
+Authors@R: 
+    person(given = "Muad",
+           family = "Abd El Hay",
+           role = c("aut", "cre"),
+           email = "muad.abdelhay@gmail.com",
+           comment = c(ORCID = "0000-0002-5082-1216"))
+Description: This package implements the CalciumExperiment and VoltageExperiment objects which are based on the SummarizedExperiment object. Furthermore it implements standard analysis methods such as baseline correction and normalisation, as well as, common visualization methods.
+License: `Artistic-2.0`
+Depends: SummarizedExperiment, S4Vectors
+Imports: methods
+Suggests: reticulate
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.0

@@ -1,0 +1,20 @@
+* Next steps
+** TODO [#C] Import Neurodata without borders files through python
+** DONE [#A] Import from suite2p
+   CLOSED: [2020-05-27 Wed 17:24]
+** TODO [#B] Add reference images to suite2p import (EBImage)
+** TODO [#A] Document functions
+** TODO [#A] generic plot function
+** TODO [#B] Implement basilisk environment for suite2p import
+
+* Issues
+
+** python 3.6 dependency for readSuite2p
+
+Since suite2p stores some of its data in a format that can only be read by numpy from python 3.6+ the readSuite2p function requires python 3.6 to perform correctly. The function relies on the reticulate package which usually ends up using the standard python 2.7 installation of the system. To ensure that python 3.6 is used, add the path of your python 3.6 installation to your .Renviron or .Rprofile files. Below is an example of a miniconda installation on macOS. 
+
+#+BEGIN_SRC example
+
+RETICULATE_PYTHON="/opt/miniconda3/bin/python"
+
+#+END_SRC
