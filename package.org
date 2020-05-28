@@ -83,7 +83,7 @@ setMethod("raw", "CalciumExperiment", function(x, withDimnames=TRUE) {
 #+END_SRC
 * importers
   :PROPERTIES:
-  :header-args: :tangle "./R/01importers.R"
+  :header-args: :tangle "./R/importers.R"
   :END:
 ** readSuite2p
 
