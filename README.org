@@ -3,10 +3,39 @@
 ** DONE [#A] Import from suite2p
    CLOSED: [2020-05-27 Wed 17:24]
 ** TODO [#B] Add reference images to suite2p import (EBImage)
-** TODO [#A] Document functions
-** TODO [#A] generic plot function
+** TODO [#A] Document plotting function
+** DONE [#A] generic plot function
+   CLOSED: [2020-06-17 Wed 11:18] SCHEDULED: <2020-06-17 Wed>
+   :LOGBOOK:
+   CLOCK: [2020-06-17 Wed 11:08]--[2020-06-17 Wed 11:18] =>  0:10
+   CLOCK: [2020-06-17 Wed 10:31]--[2020-06-17 Wed 10:56] =>  0:25
+   CLOCK: [2020-06-17 Wed 10:00]--[2020-06-17 Wed 10:25] =>  0:25
+   CLOCK: [2020-06-17 Wed 09:27]--[2020-06-17 Wed 09:52] =>  0:25
+   :END:
+** TODO [#A] Write normalizing function
+   :LOGBOOK:
+   CLOCK: [2020-06-19 Fri 17:10]--[2020-06-19 Fri 17:35] =>  0:25
+   CLOCK: [2020-06-19 Fri 10:42]--[2020-06-19 Fri 11:07] =>  0:25
+   CLOCK: [2020-06-19 Fri 09:44]--[2020-06-19 Fri 10:09] =>  0:25
+   CLOCK: [2020-06-19 Fri 09:08]--[2020-06-19 Fri 09:33] =>  0:25
+   CLOCK: [2020-06-19 Fri 08:34]--[2020-06-19 Fri 08:59] =>  0:25
+   CLOCK: [2020-06-18 Thu 10:33]--[2020-06-18 Thu 10:58] =>  0:25
+   CLOCK: [2020-06-18 Thu 10:03]--[2020-06-18 Thu 10:28] =>  0:25
+   CLOCK: [2020-06-18 Thu 09:14]--[2020-06-18 Thu 09:39] =>  0:25
+   CLOCK: [2020-06-18 Thu 08:43]--[2020-06-18 Thu 09:08] =>  0:25
+   CLOCK: [2020-06-18 Thu 08:10]--[2020-06-18 Thu 08:35] =>  0:25
+   CLOCK: [2020-06-18 Thu 07:40]--[2020-06-18 Thu 08:05] =>  0:25
+   CLOCK: [2020-06-17 Wed 16:08]--[2020-06-17 Wed 16:33] =>  0:25
+   CLOCK: [2020-06-17 Wed 15:24]--[2020-06-17 Wed 15:49] =>  0:25
+   CLOCK: [2020-06-17 Wed 14:49]--[2020-06-17 Wed 15:14] =>  0:25
+   :END:
+** TODO [#C] Add ability to plot a numeric colData column
 ** TODO [#B] Implement basilisk environment for suite2p import
 
+** TODO [#A] reference author of colScale function
+** TODO [#C] change correlaton function to coop (increased speed) for plotTraces
+** TODO [#C] Document randomAlphaNum
+** TODO [#C] Diverge colors in plotTraces
 * Issues
 
 ** python 3.6 dependency for readSuite2p

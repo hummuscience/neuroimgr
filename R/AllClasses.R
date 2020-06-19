@@ -19,16 +19,17 @@
 #' @param ... 
 ##' @return 
 ##' @author Muad Abd El Hay
-##' #' @export
+##' @export
 #' @importFrom SummarizedExperiment SummarizedExperiment
 CalciumExperiment <- function(raw, ...) {
-    se <- SummarizedExperiment(list(raw=raw), ...)
-    .CalciumExperiment(se)
+  se <- SummarizedExperiment(list(raw=raw), 
+                             ...)
+  .CalciumExperiment(se)
 }
 
-setValidity2("CalciumExperiment", function(object) {
-    msg <- NULL
-    if (is.null(msg)) {
-        TRUE
-    } else msg
-})
+## setValidity2("CalciumExperiment", function(object) {
+##   msg <- NULL
+##   if (is.null(msg)) {
+##     TRUE
+##   } else msg
+## })

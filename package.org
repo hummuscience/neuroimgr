@@ -28,19 +28,20 @@ This is a file documenting all the functions included in the package. Each headi
 #' @param ... 
 ##' @return 
 ##' @author Muad Abd El Hay
-##' #' @export
+##' @export
 #' @importFrom SummarizedExperiment SummarizedExperiment
 CalciumExperiment <- function(raw, ...) {
-    se <- SummarizedExperiment(list(raw=raw), ...)
-    .CalciumExperiment(se)
+  se <- SummarizedExperiment(list(raw=raw), 
+                             ...)
+  .CalciumExperiment(se)
 }
 
-setValidity2("CalciumExperiment", function(object) {
-    msg <- NULL
-    if (is.null(msg)) {
-        TRUE
-    } else msg
-})
+## setValidity2("CalciumExperiment", function(object) {
+##   msg <- NULL
+##   if (is.null(msg)) {
+##     TRUE
+##   } else msg
+## })
 #+END_SRC
 
 ** TODO VoltageExperiment
@@ -51,7 +52,7 @@ setValidity2("CalciumExperiment", function(object) {
   :header-args: :tangle "./R/AllGenerics.R"
   :END:
 ** raw
-#+BEGIN_SRC R
+ #+BEGIN_SRC R
 
 
 ##' .. content for \description{} (no empty lines) ..
@@ -80,11 +81,45 @@ setMethod("raw", "CalciumExperiment", function(x, withDimnames=TRUE) {
     assay(x, withDimnames=withDimnames)
 })
 
+ #+END_SRC
+** normalize
+#+BEGIN_SRC R
+
+#' @export
+#' @importFrom BiocGenerics normalize
+##' @param object CalciumExperiment object. 
+##' @param method character. The method to use for baseline correction. Defaults to "dff",
+##' @param slot character. Which assay slot to use for baseline correction.
+##' @param window numeric. The width of the baseline window to use for dF/F0 calculation.
+##' @param ... 
+setMethod("normalize", "CalciumExperiment", function(object, method = "dff", slot, window, ...) {
+  
+  non.normalized.data <- assay(object,slot)
+  if (missing(slot)) {
+    stop("Chose which assay to normalize by setting the slot argument.")
+  }
+
+  if (method == "dff") {
+    if (missing(window)) {
+      stop("No baseline window specified.")
+    }
+    baseline <- apply(non.normalized.data[1:window,],2, mean)
+    df <- sweep(non.normalized.data, 2, baseline, "-")
+    dff <- sweep(df, 2, baseline, "/")
+  }
+
+  assay(object, "normalized") <- dff
+  
+  return(object)
+
+}
+)
 #+END_SRC
 * importers
   :PROPERTIES:
   :header-args: :tangle "./R/importers.R"
   :END:
+
 ** readSuite2p
 
 #+BEGIN_SRC R
@@ -94,15 +129,25 @@ setMethod("raw", "CalciumExperiment", function(x, withDimnames=TRUE) {
 ##' Takes the output of a full suite2p run and turns it into a \linkS4class{CalciumExperiment} object
 ##' @title Import suite2p outputs
 ##' @param s2p.path The path to the folder containing suite2p outputs
+##' @param time A time vector giving the timepoint at which every frame was taken. If left blank, a vector will be calculated with the fs parameter from Suite2p and the number of frames.
+##' @param exp.n Experiment name/number. This is used to give the cells/ROIs unique IDs and will be randomly generated if left blank.
 ##' @param correction.factor The corection factor for neuropili substraction, defaults to 0.7
+##' @param ... 
 ##' @return 
 ##' @author Muad Abd El Hay
 ##' @importFrom reticulate import
-readSuite2p <- function(s2p.path, correction.factor=0.7) {
+##' @export
+readSuite2p <- function(s2p.path, time, exp.n, correction.factor=0.7, ...) {
+  
+  if(missing(exp.n)) {
+  message("No experiment number/name given. Random name will be used.")
+  exp.n <- randomAlphaNum()
+  }
 
   np <- reticulate::import("numpy")
   os <- reticulate::import("os.path")
   
+  message("Importing extracted fluorescence.")
   f <- np$load(
             os$expanduser(
                  paste(s2p.path,
@@ -111,6 +156,7 @@ readSuite2p <- function(s2p.path, correction.factor=0.7) {
                ),
             allow_pickle = TRUE)
   
+  message("Importing neuropili traces.")
   fNeu <- np$load(
                os$expanduser(
                     paste(s2p.path,
@@ -128,15 +174,15 @@ readSuite2p <- function(s2p.path, correction.factor=0.7) {
                  allow_pickle = TRUE)
   
   stats <- np$load(
-              os$expanduser(
-                      paste(s2p.path,
-                            "/plane0/stat.npy",
-                            sep = "")
-                 ),
-              allow_pickle = TRUE
-            )
+                os$expanduser(
+                     paste(s2p.path,
+                           "/plane0/stat.npy",
+                           sep = "")
+                   ),
+                allow_pickle = TRUE
+              )
 
-  
+  message("Importing deconvoluted traces.")
   spks <- np$load(
                os$expanduser(
                     paste(s2p.path,
@@ -145,19 +191,35 @@ readSuite2p <- function(s2p.path, correction.factor=0.7) {
                   ),
                allow_pickle = TRUE)
 
-  f <- f[isCell[,1]==1,]
-  fNeu <- fNeu[isCell[,1]==1,]
-  spks <- spks[isCell[,1]==1,]
-  fClean <- f - correction.factor * fNeu
+  ops <- np$load(
+              os$expanduser(
+                   paste(s2p.path,
+                         "/plane0/ops.npy",
+                         sep = "")
+                 ),
+              allow_pickle = TRUE)
+
+  ops <- ops[[1]]
+  
+  message("Filtering cells.")
+  fT <- t(f[isCell[,1]==1,])
+  fNeuT <- t(fNeu[isCell[,1]==1,])
+  spksT <- t(spks[isCell[,1]==1,])
+
+  message(sprintf("Calculating corrected traces with factor:", correction.factor, sep=" "))
+  fClean <- fT - correction.factor * fNeuT
 
   stats <- stats[which(isCell[,1] == 1)]
 
+  message("Putting together cell parameters.")
   cellRadius <- purrr::map_dbl(stats, "radius")
   cellNpix <- purrr::map_dbl(stats, "npix")
   cellNpixNorm <- purrr::map_dbl(stats, "npix_norm")
-  cellYpix <- purrr::map_dbl(stats, ~.x$ypix[1])
-  cellXpix <- purrr::map_dbl(stats, ~.x$xpix[1])
-  cellLam <- purrr::map_dbl(stats, ~.x$lam[1])
+  ## cellYpix <- purrr::map_dbl(stats, ~.x$ypix[1])
+  ## cellXpix <- purrr::map_dbl(stats, ~.x$xpix[1])
+  ## cellLam <- purrr::map_dbl(stats, ~.x$lam[1])
+  cellCenterX <- purrr::map_dbl(stats, ~.x$med[[1]])
+  cellCenterY <- purrr::map_dbl(stats, ~.x$med[[2]])
   cellCompact <- purrr::map_dbl(stats, "compact")
   cellFootprint <- purrr::map_dbl(stats, "footprint")
   cellAspectRatio <- purrr::map_dbl(stats, "aspect_ratio")
@@ -167,25 +229,232 @@ readSuite2p <- function(s2p.path, correction.factor=0.7) {
   phenoData <- DataFrame(radius = cellRadius,
                          npix = cellNpix,
                          npix_norm = cellNpixNorm,
-                         ypix = cellYpix,
-                         xpix = cellXpix,
-                         lam = cellLam,
+                         ## ypix = cellYpix,
+                         ## xpix = cellXpix,
+                         ## lam = cellLam,
+                         centerx <- cellCenterX,
+                         centery <- cellCenterY,
                          compactness = cellCompact,
                          footprint = cellFootprint,
                          aspect_ratio = cellAspectRatio,
                          skewness = cellSkew,
                          std = cellStd)
   
-  ce <- CalciumExperiment(t(f),
-                          colData = phenoData)
+  if (missing(time)) {
+      message(sprintf("No time vector given. Generating time vector with framerate:",ops$fs,"Hz"))
+      time <- 1:nrow(fT)/ops$fs
+  } else {
+    if (typeof(time) %in% c("integer","double")) {
+      time = time
+    } else {
+      stop("Time vector supplied is neither double nor integer")  
+    }     
+  }
 
-  assay(ce, "neuropil") <- t(fNeu)
-  assay(ce, "corrected") <- t(fClean)
-  assay(ce, "deconvoluted") <- t(spks)
+  ops <- c(exp.n, ops)
+
+  message("Creating CalciumExperiment object.")
+  ce <- CalciumExperiment(raw = fT,
+                          colData = phenoData,
+                          rowData = DataFrame(time),
+                          metadata = ops)
+
+  assay(ce, "neuropil") <- fNeuT
+  assay(ce, "corrected") <- fClean
+  assay(ce, "deconvoluted") <- spksT
+
+  message("Generating unique cell names.")
+  rownames(ce) <- paste("f", 1:nrow(ce), sep="")
+  colnames(ce) <- paste(exp.n, 1:ncol(ce), sep="_")
 
   
   
   return(ce)
 }
 
+#+END_SRC
+
+* plotters
+  :PROPERTIES:
+  :header-args: :tangle "./R/plotters.R"
+  :END:
+
+** plotTraces
+#+BEGIN_SRC R
+##' .. content for \description{} (no empty lines) ..
+##'
+##' .. content for \details{} ..
+##' @title 
+#' @param x 
+#' @param slot chracter. The assays() slot to use for plotting.
+#' @param order logical. Whether to order the cells/ROIs by calculating the sums of the response.
+#' @param cluster logical. Whether to clusted the cells/ROIs by correlation. 
+##' @return 
+##' @author Muad Abd El Hay
+##' @export
+#' @importFrom magrittr %>%
+#' @import ggplot2
+plotTraces <-  function(x, slot="raw", order=FALSE,cluster=FALSE) {
+  if (slot == "raw"){
+    chosen_assay <- raw(x)
+  }
+  else {
+    chosen_assay <- assays(x)[[slot]]
+  }
+  
+  scaled_data <- colScale(chosen_assay)
+  
+  if (isTRUE(cluster)) {
+    cols.cor <- cor(scaled_data, use = "pairwise.complete.obs", method = "pearson")
+    cols.clust <- hclust(as.dist(1 - cols.cor))
+    xorder <- cols.clust$order
+    scaled_data <- scaled_data[,xorder]
+  }
+
+  if (isTRUE(order)) {
+    xorder <- order(matrixStats::colSums2(scaled_data))
+    scaled_data <- scaled_data[,xorder]
+  }
+  
+  colnames(scaled_data) <- 1:ncol(scaled_data)
+  
+  scaled_data %>%
+    tibble::as_tibble() %>%    
+    dplyr::mutate(frame = 1:nrow(.)) %>%
+    tidyr::gather(value = value, key = key, -frame) %>%
+    dplyr::mutate(numkey = as.numeric(key)) %>% 
+    ggplot(aes(x = frame, y = value + numkey, group = key, color = key)) +
+    geom_line() +
+    theme_void() +
+    theme(legend.position = "none")
+  
+}
+
+
+
+
+#+END_SRC
+
+* helpers
+  :PROPERTIES:
+  :header-args: :tangle "./R/helpers.R"
+  :END:
+** colScale
+#+BEGIN_SRC R
+##' .. content for \description{} (no empty lines) ..
+##'
+##' .. content for \details{} ..
+##' @title Fast center and/or scale columns using the matrixStats functions.
+##' @param x 
+##' @param center 
+##' @param scale 
+##' @param add_attr 
+##' @param rows 
+##' @param cols 
+##' @return 
+##' @references https://hopstat.wordpress.com/2016/02/23/a-faster-scale-function/
+colScale = function(x,
+    center = TRUE,
+    scale = TRUE,
+    add_attr = TRUE,
+    rows = NULL,
+    cols = NULL) {
+ 
+    if (!is.null(rows) && !is.null(cols)) {
+        x <- x[rows, cols, drop = FALSE]
+    } else if (!is.null(rows)) {
+        x <- x[rows, , drop = FALSE]
+    } else if (!is.null(cols)) {
+        x <- x[, cols, drop = FALSE]
+    }
+ 
+  ################
+  # Get the column means
+  ################
+    cm = matrixStats::colMeans2(x, na.rm = TRUE)
+  ################
+  # Get the column sd
+  ################
+    if (scale) {
+        csd = matrixStats::colSds(x, center = cm)
+    } else {
+        # just divide by 1 if not
+        csd = rep(1, length = length(cm))
+    }
+    if (!center) {
+        # just subtract 0
+        cm = rep(0, length = length(cm))
+    }
+    x = t( (t(x) - cm) / csd )
+    if (add_attr) {
+        if (center) {
+            attr(x, "scaled:center") <- cm
+        }
+        if (scale) {
+            attr(x, "scaled:scale") <- csd
+        }
+    }
+    return(x)
+}
+
+#+END_SRC
+
+#+RESULTS:
+
+
+** expSmooth
+
+#+BEGIN_SRC R
+##' .. content for \description{} (no empty lines) ..
+##'
+##' .. content for \details{} ..
+##' @title 
+##' @param x 
+##' @param alpha 
+##' @return 
+##' @author Stephen Eglen
+##' @references https://www.itl.nist.gov/div898/software/dataplot/refman2/auxillar/exposmoo.htm
+expSmooth <- function(x, alpha=0.3) {
+  y = x
+  n = length(x)
+  for (i in 2:n) {
+    y[i] = (alpha*x[i]) + ((1-alpha)*y[i-1])
+  }
+  y
+}
+
+#+END_SRC
+
+
+** randomAlphaNum
+#+BEGIN_SRC R
+
+randomAlphaNum <- function(n = 1) {
+  a <- do.call(paste0, replicate(5, sample(LETTERS, n, TRUE), FALSE))
+  paste0(a, sprintf("%04d", sample(9999, n, TRUE)), sample(LETTERS, n, TRUE))
+}
+
+#+END_SRC
+
+* archive
+
+** missing frame rate
+
+#+BEGIN_SRC R
+  if (missing(time)) {
+    if (is.null(fs)) {
+      message("No time or framerate given. Generating time vector with framerate 1Hz")
+      time <- 1:nrow(raw)
+      fs <- 1
+    } else {
+      message(sprintf("No time vector given. Generating time vector with framerate:",fs,"Hz"))
+      time <- 1:nrow(raw)/fs
+    }
+  } else {
+    if (typeof(time) %in% c("integer","double")) {
+      time = time
+    } else {
+      stop("Time vector supplied is neither double nor integer")  
+    }     
+  }
 #+END_SRC
