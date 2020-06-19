@@ -1,0 +1,8 @@
+#+BEGIN_SRC R
+
+
+## read in suite2p
+
+
+cexp <- readSuite2p("./inst/extdata/suite2p")
+#+END_SRC
