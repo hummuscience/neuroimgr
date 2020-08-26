@@ -1,6 +1,65 @@
-##' .. content for \description{} (no empty lines) ..
-##'
-##' .. content for \details{} ..
+##' Takes as input a CalciumExperiment object and a stimulus table that must contain the columns "stimulus", "begin", and "end" denoting the name/number of the stimulus, the beginning of the stimulus and the end, respectively. The stimulus table could either denote the times of stimuli using the units sipplied in the "time" field (check rowData of the CalciumExperiment object) or contain the frame numbers (row numbers) of the stimulus start and end. The default assumes a table contining the times.
+##' @title Split CalciumExperiment object into multiple assays by stimuli
+##' @param cexp CalciumExperiment to split.
+##' @param stim.table The stimulus table with columns "stimulus", "begin", "end" where every row is one stimulus to split the dataset by.
+##' @param stim.table.type The type of stimulus table that is supplied. 
+##' @param buffer Whether to add a "buffer" before and after the stimulus. Useful for plotting.
+##' @param buffer.size The relative size of the buffer. Defaults to half of the stimulus length.
+##' @param ... 
+##' @importFrom MultiAssayExperiment MultiAssayExperiment
+##' @export
+##' @return A MultiAssayExperiment object with each stimulus as independent CalciumExperiment object.
+##' @author Muad Abd El Hay
+splitByStimulus <- function(cexp, stim.table, stim.table.type = "time", buffer = FALSE, buffer.size = 0.5, ...){
+
+  if (stim.table.type == "time") {
+    
+    frame.stim.table <- stim.table
+    
+    for (i in 1:nrow(frame.stim.table)){
+
+      frame.stim.table[i, c("begin")] <- which.min(abs(rowData(cexp)$time - stim.table[i, c("begin")]))
+      frame.stim.table[i, c("end")] <- which.min(abs(rowData(cexp)$time - stim.table[i, c("end")]))
+
+    }
+  } else if (stim.table.type == "frame") {
+       
+       frame.stim.table <- stim.table
+       
+  } else {
+
+    stop("Invlid stim.table.type, must be either time or frame")
+
+  }
+
+
+  if (isTRUE(buffer)) {
+
+    widths <- frame.stim.table$end - frame.stim.table$begin
+    buffer.widths <- buffer.size * widths
+    frame.stim.table$begin <- frame.stim.table$begin - buffer.widths
+    frame.stim.table$end <- frame.stim.table$end + buffer.widths
+
+    frame.stim.table$begin[which(frame.stim.table$begin < 0)] <- 0
+    frame.stim.table$end[which(frame.stim.table$end > nrow(cexp))] <- nrow(cexp)
+
+  }
+  
+  stimulusList <- vector(mode = "list", length = nrow(stim.table))
+  names(stimulusList) <- frame.stim.table$stimulus
+  
+  for (i in 1:nrow(frame.stim.table)) {
+    
+    stimulusList[[i]] <- cexp[frame.stim.table[i,"begin"]:frame.stim.table[i,"end"],]
+
+  }
+  
+  mcexp <- MultiAssayExperiment(experiments=stimulusList, 
+                                colData = colData(stimulusList[[1]]))
+
+  return(mcexp)
+}
+
 ##' @title Fast center and/or scale columns using the matrixStats functions.
 ##' @param x 
 ##' @param center 
