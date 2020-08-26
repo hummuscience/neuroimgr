@@ -2,7 +2,7 @@
 % Please edit documentation in R/AllClasses.R
 \name{CalciumExperiment}
 \alias{CalciumExperiment}
-\title{}
+\title{CalciumExperiment constructor}
 \usage{
 CalciumExperiment(raw, ...)
 }
@@ -15,10 +15,7 @@ CalciumExperiment(raw, ...)
 
 }
 \description{
-.. content for \description{} (no empty lines) ..
-}
-\details{
-.. content for \details{} ..
+Constructor for CalciumExperiment objects.
 }
 \author{
 Muad Abd El Hay

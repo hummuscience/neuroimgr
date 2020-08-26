@@ -2,7 +2,7 @@
 % Please edit documentation in R/AllGenerics.R
 \name{raw,CalciumExperiment-method}
 \alias{raw,CalciumExperiment-method}
-\title{}
+\title{raw Accessor}
 \usage{
 \S4method{raw}{CalciumExperiment}(x, withDimnames = TRUE)
 }
@@ -15,10 +15,7 @@
 
 }
 \description{
-.. content for \description{} (no empty lines) ..
-}
-\details{
-.. content for \details{} ..
+Accessor function for raw fluorescence values per ROI
 }
 \author{
 Muad Abd El Hay

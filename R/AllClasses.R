@@ -1,20 +1,22 @@
-##' .. content for \description{} (no empty lines) ..
+##' Function that defines the CalciumExperiment class
 ##'
-##' .. content for \details{} ..
-##' @title 
+##' 
+##' @title CalciumExperiment class
 #' @param raw 
 #' @param ... 
 ##' @return 
+
+
 ##' @author Muad Abd El Hay
-##' #' @export
+##'@export
 #' @import methods
 #' @importClassesFrom SummarizedExperiment SummarizedExperiment
 .CalciumExperiment <- setClass("CalciumExperiment", contains = "SummarizedExperiment")
 
-##' .. content for \description{} (no empty lines) ..
+##' Constructor for CalciumExperiment objects.
 ##'
-##' .. content for \details{} ..
-##' @title 
+##' 
+##' @title CalciumExperiment constructor
 #' @param raw 
 #' @param ... 
 ##' @return 

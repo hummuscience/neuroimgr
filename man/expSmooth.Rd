@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{expSmooth}
 \alias{expSmooth}
-\title{}
+\title{Exponential smoothing function.}
 \usage{
 expSmooth(x, alpha = 0.3)
 }
@@ -15,10 +15,7 @@ expSmooth(x, alpha = 0.3)
 
 }
 \description{
-.. content for \description{} (no empty lines) ..
-}
-\details{
-.. content for \details{} ..
+Function to perform exponential smoothing.
 }
 \references{
 https://www.itl.nist.gov/div898/software/dataplot/refman2/auxillar/exposmoo.htm

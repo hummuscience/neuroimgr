@@ -2,7 +2,7 @@
 % Please edit documentation in R/AllGenerics.R
 \name{raw}
 \alias{raw}
-\title{}
+\title{raw Accessor}
 \usage{
 raw(x, ...)
 }
@@ -15,10 +15,7 @@ raw(x, ...)
 
 }
 \description{
-.. content for \description{} (no empty lines) ..
-}
-\details{
-.. content for \details{} ..
+Accessor function for raw fluorescence values per ROI
 }
 \author{
 Muad Abd El Hay

@@ -109,6 +109,8 @@ extractSpikesFromLZeroFit <- function(x, gam = 0.8, lambda = 0.1, constraint = F
   return(spikes)
   
 }
+
+##' Function for fast center and scaling of matrix columns.
 ##' @title Fast center and/or scale columns using the matrixStats functions.
 ##' @param x 
 ##' @param center 
@@ -162,10 +164,8 @@ colScale = function(x,
     return(x)
 }
 
-##' .. content for \description{} (no empty lines) ..
-##'
-##' .. content for \details{} ..
-##' @title 
+##' Function to perform exponential smoothing.
+##' @title Exponential smoothing function.
 ##' @param x 
 ##' @param alpha 
 ##' @return 
@@ -183,4 +183,17 @@ expSmooth <- function(x, alpha=0.3) {
 randomAlphaNum <- function(n = 1) {
   a <- do.call(paste0, replicate(5, sample(LETTERS, n, TRUE), FALSE))
   paste0(a, sprintf("%04d", sample(9999, n, TRUE)), sample(LETTERS, n, TRUE))
+}
+
+##' Function to estimate baselines using the baseline package. Default method is "irls". For other options refer to the baseline function in the baseline package.
+##' @title Function to estimate baselines of traces.
+##' @param x 
+##' @param method 
+##' @param ... 
+##' @return 
+##' @author Muad Abd El Hay
+##' @importFrom baseline baseline
+estimateBaselines <- function(x, method = "irls", ...) {
+  res <- baseline(t(x), method, ...)
+  return(t(res@baseline))
 }

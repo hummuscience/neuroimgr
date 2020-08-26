@@ -7,23 +7,25 @@ This is a file documenting all the functions included in the package. Each headi
 ** CalciumExperiment
 
 #+BEGIN_SRC R
-##' .. content for \description{} (no empty lines) ..
+##' Function that defines the CalciumExperiment class
 ##'
-##' .. content for \details{} ..
-##' @title 
+##' 
+##' @title CalciumExperiment class
 #' @param raw 
 #' @param ... 
 ##' @return 
+
+
 ##' @author Muad Abd El Hay
-##' #' @export
+##'@export
 #' @import methods
 #' @importClassesFrom SummarizedExperiment SummarizedExperiment
 .CalciumExperiment <- setClass("CalciumExperiment", contains = "SummarizedExperiment")
 
-##' .. content for \description{} (no empty lines) ..
+##' Constructor for CalciumExperiment objects.
 ##'
-##' .. content for \details{} ..
-##' @title 
+##' 
+##' @title CalciumExperiment constructor
 #' @param raw 
 #' @param ... 
 ##' @return 
@@ -55,10 +57,8 @@ CalciumExperiment <- function(raw, ...) {
  #+BEGIN_SRC R
 
 
-##' .. content for \description{} (no empty lines) ..
-##'
-##' .. content for \details{} ..
-##' @title 
+##' Accessor function for raw fluorescence values per ROI
+##' @title raw Accessor
 #' @param x 
 #' @param ... 
 ##' @return 
@@ -67,10 +67,8 @@ CalciumExperiment <- function(raw, ...) {
 setGeneric("raw", function(x, ...) standardGeneric("raw"))
 
 
-##' .. content for \description{} (no empty lines) ..
-##'
-##' .. content for \details{} ..
-##' @title 
+##' Accessor function for raw fluorescence values per ROI
+##' @title raw Accessor
 #' @param x 
 #' @param withDimnames 
 ##' @return 
@@ -84,24 +82,29 @@ setMethod("raw", "CalciumExperiment", function(x, withDimnames=TRUE) {
  #+END_SRC
 ** normalize
 #+BEGIN_SRC R
-
+#' @title Function to normalize traces.
 #' @export
 #' @importFrom BiocGenerics normalize
 ##' @param object CalciumExperiment object. 
-##' @param method character. The method to use for baseline correction. Defaults to "dff",
+##' @param method character. The method to use for baseline correction. Defaults to "estimateBaseline",
 ##' @param slot character. Which assay slot to use for baseline correction.
-##' @param window numeric. The width of the baseline window to use for dF/F0 calculation.
+##' @param window numeric. The width of the baseline window to use for dF/F0 calculation. A window of width 500 will take the first 500 frames as baseline.
 ##' @param ... 
-setMethod("normalize", "CalciumExperiment", function(object, method = "dff", slot, window, ...) {
+setMethod("normalize", "CalciumExperiment", function(object, method = "estimateBaseline", slot, window, ...) {
   
   non.normalized.data <- assay(object,slot)
   if (missing(slot)) {
     stop("Chose which assay to normalize by setting the slot argument.")
   }
 
-  if (method == "dff") {
+  if (method == "estimateBaseline") {
+    baseline <- estimateBaselines(non.normalized.data)
+    dff <- (non.normalized.data - baseline) / baseline
+  }
+
+  if (method == "start") {
     if (missing(window)) {
-      stop("No baseline window specified.")
+      stop("No baseline starting window specified.")
     }
     baseline <- apply(non.normalized.data[1:window,],2, mean)
     df <- sweep(non.normalized.data, 2, baseline, "-")
@@ -109,7 +112,7 @@ setMethod("normalize", "CalciumExperiment", function(object, method = "dff", slo
   }
 
   assay(object, "normalized") <- dff
-  
+
   return(object)
 
 }
@@ -281,10 +284,10 @@ readSuite2p <- function(s2p.path, time, exp.n, correction.factor=0.7, ...) {
 
 ** plotTraces
 #+BEGIN_SRC R
-##' .. content for \description{} (no empty lines) ..
+##' Plots staggered line plots of each ROI. Defaults to "raw" values without any additional modifications.
 ##'
-##' .. content for \details{} ..
-##' @title 
+##' Can be set to order the traces or even cluster them before plotting. Traces are scaled by default.
+##' @title Function to plot CalciumExperiment objects.
 #' @param x 
 #' @param slot chracter. The assays() slot to use for plotting.
 #' @param order logical. Whether to order the cells/ROIs by calculating the sums of the response.
@@ -293,8 +296,14 @@ readSuite2p <- function(s2p.path, time, exp.n, correction.factor=0.7, ...) {
 ##' @author Muad Abd El Hay
 ##' @export
 #' @importFrom magrittr %>%
+#' @importFrom stats cor
+#' @importFrom stats hclust
+#' @importFrom stats as.dist
+#' @importFrom rlang .data
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom matrixStats colSums2
 #' @import ggplot2
-plotTraces <-  function(x, slot="raw", order=FALSE,cluster=FALSE) {
+plotTraces <-  function(x, slot="raw", order=FALSE,cluster=FALSE, scale=TRUE) {
   if (slot == "raw"){
     chosen_assay <- raw(x)
   }
@@ -302,29 +311,36 @@ plotTraces <-  function(x, slot="raw", order=FALSE,cluster=FALSE) {
     chosen_assay <- assays(x)[[slot]]
   }
   
-  scaled_data <- colScale(chosen_assay)
-  
+  if (isTRUE(scale)) {
+    plotting_data <- colScale(chosen_assay)
+  } else {
+    plotting_data <- chosen_assay
+  }
+
   if (isTRUE(cluster)) {
-    cols.cor <- cor(scaled_data, use = "pairwise.complete.obs", method = "pearson")
+    cols.cor <- cor(plotting_data, use = "pairwise.complete.obs", method = "pearson")
     cols.clust <- hclust(as.dist(1 - cols.cor))
     xorder <- cols.clust$order
-    scaled_data <- scaled_data[,xorder]
+    plotting_data <- plotting_data[,xorder]
   }
 
   if (isTRUE(order)) {
-    xorder <- order(matrixStats::colSums2(scaled_data))
-    scaled_data <- scaled_data[,xorder]
+    xorder <- order(matrixStats::colSums2(plotting_data))
+    plotting_data <- plotting_data[,xorder]
   }
   
-  colnames(scaled_data) <- 1:ncol(scaled_data)
+  colnames(plotting_data) <- 1:ncol(plotting_data)
   
-  scaled_data %>%
+  color.factor <- ceiling(ncol(plotting_data)/9)
+
+  plotting_data %>%
     tibble::as_tibble() %>%    
     dplyr::mutate(frame = 1:nrow(.)) %>%
     tidyr::gather(value = value, key = key, -frame) %>%
     dplyr::mutate(numkey = as.numeric(key)) %>% 
     ggplot(aes(x = frame, y = value + numkey, group = key, color = key)) +
     geom_line() +
+    scale_colour_manual(values=rep(RColorBrewer::brewer.pal(9,"Set1"),times=color.factor))+
     theme_void() +
     theme(legend.position = "none")
   
@@ -339,11 +355,136 @@ plotTraces <-  function(x, slot="raw", order=FALSE,cluster=FALSE) {
   :PROPERTIES:
   :header-args: :tangle "./R/helpers.R"
   :END:
+
+** splitByStimulus  
+
+#+BEGIN_SRC R
+##' Takes as input a CalciumExperiment object and a stimulus table that must contain the columns "stimulus", "begin", and "end" denoting the name/number of the stimulus, the beginning of the stimulus and the end, respectively. The stimulus table could either denote the times of stimuli using the units sipplied in the "time" field (check rowData of the CalciumExperiment object) or contain the frame numbers (row numbers) of the stimulus start and end. The default assumes a table contining the times.
+##' @title Split CalciumExperiment object into multiple assays by stimuli
+##' @param cexp CalciumExperiment to split.
+##' @param stim.table The stimulus table with columns "stimulus", "begin", "end" where every row is one stimulus to split the dataset by.
+##' @param stim.table.type The type of stimulus table that is supplied. 
+##' @param buffer Whether to add a "buffer" before and after the stimulus. Useful for plotting.
+##' @param buffer.size The relative size of the buffer. Defaults to half of the stimulus length.
+##' @param ... 
+##' @importFrom MultiAssayExperiment MultiAssayExperiment
+##' @export
+##' @return A MultiAssayExperiment object with each stimulus as independent CalciumExperiment object.
+##' @author Muad Abd El Hay
+splitByStimulus <- function(cexp, stim.table, stim.table.type = "time", buffer = FALSE, buffer.size = 0.5, ...){
+
+  if (stim.table.type == "time") {
+    
+    frame.stim.table <- stim.table
+    
+    for (i in 1:nrow(frame.stim.table)){
+
+      frame.stim.table[i, c("begin")] <- which.min(abs(rowData(cexp)$time - stim.table[i, c("begin")]))
+      frame.stim.table[i, c("end")] <- which.min(abs(rowData(cexp)$time - stim.table[i, c("end")]))
+
+    }
+  } else if (stim.table.type == "frame") {
+       
+       frame.stim.table <- stim.table
+       
+  } else {
+
+    stop("Invlid stim.table.type, must be either time or frame")
+
+  }
+
+
+  if (isTRUE(buffer)) {
+
+    widths <- frame.stim.table$end - frame.stim.table$begin
+    buffer.widths <- buffer.size * widths
+    frame.stim.table$begin <- frame.stim.table$begin - buffer.widths
+    frame.stim.table$end <- frame.stim.table$end + buffer.widths
+
+    frame.stim.table$begin[which(frame.stim.table$begin < 0)] <- 0
+    frame.stim.table$end[which(frame.stim.table$end > nrow(cexp))] <- nrow(cexp)
+
+  }
+  
+  stimulusList <- vector(mode = "list", length = nrow(stim.table))
+  names(stimulusList) <- frame.stim.table$stimulus
+  
+  for (i in 1:nrow(frame.stim.table)) {
+    
+    stimulusList[[i]] <- cexp[frame.stim.table[i,"begin"]:frame.stim.table[i,"end"],]
+
+  }
+  
+  mcexp <- MultiAssayExperiment(experiments=stimulusList, 
+                                colData = colData(stimulusList[[1]]))
+
+  return(mcexp)
+}
+
+#+END_SRC
+
+** binarize
+
+#+BEGIN_SRC R
+##' Function to estimate spikes and binarize a CalciumExperiment object.
+##' @title Estimate spikes and binarize data using the L0 method by Jewell et al. 2019
+##' @param cexp CalciumExperiment object to binarize.
+##' @param slot The assay slot to use for binarization. Defaults to "normalized".
+##' @param ... Additional parameters that can be passed to the spike estimation function.
+##' @return
+##' @export
+##' @author Muad Abd El Hay
+binarize <- function(cexp, slot = "normalized", ...){
+
+  if (slot %in% names(assays(cexp))) {
+    
+    normalized.data <- assay(cexp, slot)
+
+  } else {
+    
+    stop("no assay with given name found, please normalize the data first with the function normalize or assign another slot to perform binarization on.")
+    
+  }
+  
+  estimatedSpikes <- apply(normalized.data, 2, extractSpikesFromLZeroFit)
+
+  colnames(estimatedSpikes) <- colnames(cexp)
+  rownames(estimatedSpikes) <- rownames(cexp)
+  
+  assay(cexp, "l0spikes") <- estimatedSpikes
+
+  return(cexp)
+  
+}
+#+END_SRC
+
+** extractSpikesFromLZeroFit
+
+#+BEGIN_SRC R
+##' Utility function to extract the estimated spikes based on the FastLZeroSpikeInference package by Jewell et al. 2019.
+##' @title Fit L0 spike inference model and extract spikes according to Jewell et al. 2019
+##' @param x A vector containing the normalized fluorescence trace.
+##' @param gam numeric. between 0 and 1. Parameter to tune spike inference.
+##' @param lambda numeric. between 0 and 1. Parameter to tune spike inference.
+##' @param constraint logical. Whether to run the fit with constrain or not.
+##' @importFrom FastLZeroSpikeInference estimate_spikes
+##' @return 
+##' @author Muad Abd El Hay
+extractSpikesFromLZeroFit <- function(x, gam = 0.8, lambda = 0.1, constraint = FALSE) {
+
+  fit <- estimate_spikes(x, gam = gam, lambda = lambda, constraint = constraint)
+  spikes <- rep(0, times = length(x))
+  spikes[fit$spikes] <- 1
+
+  return(spikes)
+  
+}
+
+#+END_SRC
+
 ** colScale
 #+BEGIN_SRC R
-##' .. content for \description{} (no empty lines) ..
-##'
-##' .. content for \details{} ..
+##' Function for fast center and scaling of matrix columns.
 ##' @title Fast center and/or scale columns using the matrixStats functions.
 ##' @param x 
 ##' @param center 
@@ -405,10 +546,8 @@ colScale = function(x,
 ** expSmooth
 
 #+BEGIN_SRC R
-##' .. content for \description{} (no empty lines) ..
-##'
-##' .. content for \details{} ..
-##' @title 
+##' Function to perform exponential smoothing.
+##' @title Exponential smoothing function.
 ##' @param x 
 ##' @param alpha 
 ##' @return 
@@ -436,6 +575,24 @@ randomAlphaNum <- function(n = 1) {
 
 #+END_SRC
 
+
+** estimateBaselines
+#+BEGIN_SRC R
+##' Function to estimate baselines using the baseline package. Default method is "irls". For other options refer to the baseline function in the baseline package.
+##' @title Function to estimate baselines of traces.
+##' @param x 
+##' @param method 
+##' @param ... 
+##' @return 
+##' @author Muad Abd El Hay
+##' @importFrom baseline baseline
+estimateBaselines <- function(x, method = "irls", ...) {
+  res <- baseline(t(x), method, ...)
+  return(t(res@baseline))
+}
+
+#+END_SRC
+
 * archive
 
 ** missing frame rate
@@ -457,4 +614,72 @@ randomAlphaNum <- function(n = 1) {
       stop("Time vector supplied is neither double nor integer")  
     }     
   }
+#+END_SRC
+** detrending
+#+BEGIN_SRC R
+
+library(magrittr)
+library(ijtiff)
+library(detrendr)
+
+# read
+traces <- read.csv("~/Downloads/dummy.txt")
+dim(traces)
+#> [1] 4045   85
+
+traces <- bla
+
+# transform for detrendr
+traces_transformed <- traces %>% 
+  as.matrix() %>% 
+  ijtiff_img() %>% 
+  linescan_to_stack()
+dim(traces_transformed)
+#> [1]    1   85    1 4045
+
+# detrend
+traces_transformed_detrended <- img_detrend_exp(traces_transformed, 
+                                                tau = 100, purpose = "FCS")
+dim(traces_transformed_detrended)
+#> [1]    1   85    1 4045
+
+# transform back
+traces_detrended <- stack_to_linescan(traces_transformed_detrended)
+dim(traces_detrended)
+#> [1] 4045   85    1    1
+dim(traces_detrended) <- dim(traces_detrended)[1:2]
+dim(traces_detrended)
+#> [1] 4045   85
+
+
+#+END_SRC
+
+** baseline
+
+#+BEGIN_SRC R
+
+library(baseline)
+
+getCorrectedTrace <- function(x, ...) {
+  res <- baseline(t(x))
+  return(t(res@corrected))
+
+  }
+
+
+
+
+getBaselinePoly <- function(x, method = "modpolyfit", degree = 4) {
+  res <- baseline(t(x), method, degree)
+  return(t(res@baseline))
+
+  }
+
+baselines <- getBaselines(raw(calexp))
+
+corrected <- (raw(calexp) - baselines) / baselines
+
+##dimnames(corrected) <- dimnames(calexp)
+
+assay(calexp, "dffpoly") <- corrected
 #+END_SRC

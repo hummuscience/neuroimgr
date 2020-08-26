@@ -1,41 +1,171 @@
-* Next steps
-** TODO [#C] Import Neurodata without borders files through python
-** DONE [#A] Import from suite2p
-   CLOSED: [2020-05-27 Wed 17:24]
-** TODO [#B] Add reference images to suite2p import (EBImage)
-** TODO [#A] Document plotting function
-** DONE [#A] generic plot function
-   CLOSED: [2020-06-17 Wed 11:18] SCHEDULED: <2020-06-17 Wed>
-   :LOGBOOK:
-   CLOCK: [2020-06-17 Wed 11:08]--[2020-06-17 Wed 11:18] =>  0:10
-   CLOCK: [2020-06-17 Wed 10:31]--[2020-06-17 Wed 10:56] =>  0:25
-   CLOCK: [2020-06-17 Wed 10:00]--[2020-06-17 Wed 10:25] =>  0:25
-   CLOCK: [2020-06-17 Wed 09:27]--[2020-06-17 Wed 09:52] =>  0:25
-   :END:
-** TODO [#A] Write normalizing function
-   :LOGBOOK:
-   CLOCK: [2020-06-19 Fri 17:10]--[2020-06-19 Fri 17:35] =>  0:25
-   CLOCK: [2020-06-19 Fri 10:42]--[2020-06-19 Fri 11:07] =>  0:25
-   CLOCK: [2020-06-19 Fri 09:44]--[2020-06-19 Fri 10:09] =>  0:25
-   CLOCK: [2020-06-19 Fri 09:08]--[2020-06-19 Fri 09:33] =>  0:25
-   CLOCK: [2020-06-19 Fri 08:34]--[2020-06-19 Fri 08:59] =>  0:25
-   CLOCK: [2020-06-18 Thu 10:33]--[2020-06-18 Thu 10:58] =>  0:25
-   CLOCK: [2020-06-18 Thu 10:03]--[2020-06-18 Thu 10:28] =>  0:25
-   CLOCK: [2020-06-18 Thu 09:14]--[2020-06-18 Thu 09:39] =>  0:25
-   CLOCK: [2020-06-18 Thu 08:43]--[2020-06-18 Thu 09:08] =>  0:25
-   CLOCK: [2020-06-18 Thu 08:10]--[2020-06-18 Thu 08:35] =>  0:25
-   CLOCK: [2020-06-18 Thu 07:40]--[2020-06-18 Thu 08:05] =>  0:25
-   CLOCK: [2020-06-17 Wed 16:08]--[2020-06-17 Wed 16:33] =>  0:25
-   CLOCK: [2020-06-17 Wed 15:24]--[2020-06-17 Wed 15:49] =>  0:25
-   CLOCK: [2020-06-17 Wed 14:49]--[2020-06-17 Wed 15:14] =>  0:25
-   :END:
-** TODO [#C] Add ability to plot a numeric colData column
-** TODO [#B] Implement basilisk environment for suite2p import
+This is a package intended to ease the import and manipulation of calcium and voltage imaging data in R.
 
-** TODO [#A] reference author of colScale function
-** TODO [#C] change correlaton function to coop (increased speed) for plotTraces
-** TODO [#C] Document randomAlphaNum
-** TODO [#C] Diverge colors in plotTraces
+The package uses the SummarizedExperiment class from Bioconductor and allows all usual manipulations such as subsetting etc.
+
+Additionally, the package implements some useful general functions explained below:
+
+** Plotting
+
+#+BEGIN_SRC R
+
+
+
+#+END_SRC
+
+** Normalization
+
+#+BEGIN_SRC R
+
+cexp <- readSuite2p("./inst/extdata/gradient/")
+
+cexp <- normalize(cexp, slot = "corrected")
+
+plotTraces(cexp, slot = "normalized", cluster = TRUE, scale = FALSE)
+#+END_SRC
+
+** Splitting by stimulus
+
+#+BEGIN_SRC R
+
+cexp <- readSuite2p("./inst/extdata/steps/suite2p")
+
+stimdata <- read.csv("./inst/extdata/steps/2.LOG", skip = 3, header = FALSE)
+colnames(stimdata) <- c("time","temp")
+stimdata$time <- stimdata$time - stimdata$time[1]
+
+rowData(cexp) <- stimdata
+
+timetable <- local({
+     con <- textConnection(
+       "\"Temperature\"	\"60\"	\"480\"	\"TRUE\"
+\"Capsaicin\"	\"780\"	\"805\"	\"FALSE\"
+\"HighK\"	\"985\"	\"1030\"	\"FALSE\""
+     )
+     res <- utils::read.table(
+       con,
+       header    = FALSE,
+       row.names = NULL,
+       sep       = "\t",
+       as.is     = TRUE
+     )
+     close(con)
+     res
+   })
+
+colnames(timetable) <- c("stimulus","begin","end","functional")
+
+metadata(cexp)$timetable <- timetable
+
+
+
+mcexp <- splitByStimulus(cexp, stim.table = metadata(cexp)$timetable)
+#+END_SRC
+
+** binarization
+#+BEGIN_SRC R
+
+cexp <- normalize(cexp, slot = "corrected", method = "start", window = 4*60)
+
+for ( i in 1:ncol(cexp)) {
+playdata <- as.vector(assay(cexp[,i], "normalized"))
+plot(playdata, type = "l", main = i)
+Sys.sleep(1)
+}
+
+small.data <- cexp[,c(267,270,280,282,287,289,304,319,231,332,348,369)]
+
+playdata <- assay(small.data, "normalized")
+
+library(signal)
+
+bf <- butter(2, 2/(4/2), type="low")
+
+filtered <- apply(playdata,2, filtfilt, filt = bf$b, a = bf$a)
+
+##filtered <- smooth.spline(playdata)$y
+library(FastLZeroSpikeInference)
+# AR(1) model
+fit <- estimate_spikes(dat = playdata[,12], gam = 0.8, lambda = 0.1, constraint = FALSE)
+print(fit)
+
+# compute fitted values from prev. fit
+fit <- estimate_calcium(fit)
+plot(fit)
+
+## used the cascade google collab notebook to predict the spikes in the gradient dataset normalized by "estimateBaseline" 
+blabla2 <- np$load("/Users/muadabdelhay/Desktop/predictions_file56251821795.npy")
+blabla2[is.nan(blabla2)] = 0
+
+blabla2 <- as.data.frame(t(blabla2))
+
+colnames(blabla2) <- colnames(cexp)
+rownames(blabla2) <- rownames(cexp)
+
+assay(cexp, "cascade") <- blabla2
+
+library(roll)
+
+normtrace <- roll_scale(filtered, width = 60, center = FALSE)
+normtrace[1:60,] <- 0 
+normtraceplot <- sweep(normtrace,2, 2*1:ncol(normtrace), "+")
+matplot(normtraceplot, type = "l")
+## sds <- apply(filtered,2, sd)
+
+## normtrace <- sweep(filtered,2, sds, "/")
+
+d1.trace <- apply(filtered,2,diff)
+d1.trace <- rbind(d1.trace, rep(0,times = ncol(d1.trace)))
+d1.traceplot <- sweep(d1.trace,2, 1:ncol(normtrace), "+")
+matplot(d1.traceplot, type = "l")
+
+binarized_trace <- playdata * 0
+binarized_trace[normtrace>1 & d1.trace>0] <- 1
+  
+ThresholdingAlgo <- function(y,lag,threshold,influence) {
+  signals <- rep(0,length(y))
+  filteredY <- y[0:lag]
+  avgFilter <- NULL
+  stdFilter <- NULL
+  avgFilter[lag] <- mean(y[0:lag], na.rm=TRUE)
+  stdFilter[lag] <- sd(y[0:lag], na.rm=TRUE)
+  for (i in (lag+1):length(y)){
+    if (abs(y[i]-avgFilter[i-1]) > threshold*stdFilter[i-1]) {
+      if (y[i] > avgFilter[i-1]) {
+        signals[i] <- 1;
+      } else {
+        signals[i] <- -1;
+      }
+      filteredY[i] <- influence*y[i]+(1-influence)*filteredY[i-1]
+    } else {
+      signals[i] <- 0
+      filteredY[i] <- y[i]
+    }
+    avgFilter[i] <- mean(filteredY[(i-lag):i], na.rm=TRUE)
+    stdFilter[i] <- sd(filteredY[(i-lag):i], na.rm=TRUE)
+  }
+  return(list("signals"=signals,"avgFilter"=avgFilter,"stdFilter"=stdFilter))
+}
+
+# Data
+y <- as.vector(assay(cexp[,1], "corrected"))
+
+lag       <- 30
+threshold <- 5
+influence <- 0
+
+# Run algo with lag = 30, threshold = 5, influence = 0
+result <- ThresholdingAlgo(y,lag,threshold,influence)
+
+# Plot result
+par(mfrow = c(2,1),oma = c(2,2,0,0) + 0.1,mar = c(0,0,2,1) + 0.2)
+plot(1:length(y),y,type="l",ylab="",xlab="") 
+lines(1:length(y),result$avgFilter,type="l",col="cyan",lwd=2)
+lines(1:length(y),result$avgFilter+threshold*result$stdFilter,type="l",col="green",lwd=2)
+lines(1:length(y),result$avgFilter-threshold*result$stdFilter,type="l",col="green",lwd=2)
+plot(result$signals,type="S",col="red",ylab="",xlab="",ylim=c(-1.5,1.5),lwd=2)
+
+
+#+END_SRC
 * Issues
 
 ** python 3.6 dependency for readSuite2p
@@ -46,4 +176,21 @@ Since suite2p stores some of its data in a format that can only be read by numpy
 
 RETICULATE_PYTHON="/opt/miniconda3/bin/python"
 
+#+END_SRC
+
+#+BEGIN_SRC R
+
+bla <- as.data.frame(raw(calexp))
+bla <- bla[,1:2]
+bla$t <- 1:nrow(bla)
+
+
+fits <- bla %>%
+  gather(key = key, value = y, -t) %>%
+  group_by(key) %>% 
+  do(fit = nls(y ~ SSasymp(t, yf, y0, log_alpha), data = .)) %>% 
+  tidy(fit) %>% 
+  select(key, term, estimate) %>% 
+  spread(term, estimate) %>% 
+  mutate(alpha = exp(log_alpha))
 #+END_SRC

@@ -11,9 +11,9 @@ Authors@R:
 Description: This package implements the CalciumExperiment and VoltageExperiment objects which are based on the SummarizedExperiment object. Furthermore it implements standard analysis methods such as baseline correction and normalisation, as well as, common visualization methods.
 License: `Artistic-2.0`
 Depends: SummarizedExperiment, S4Vectors
-Imports: methods
+Imports: methods ,ggplot2 ,magrittr ,baseline ,BiocGenerics
 Suggests: reticulate
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1

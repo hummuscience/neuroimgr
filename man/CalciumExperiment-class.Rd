@@ -4,7 +4,7 @@
 \name{CalciumExperiment-class}
 \alias{CalciumExperiment-class}
 \alias{.CalciumExperiment}
-\title{}
+\title{CalciumExperiment class}
 \arguments{
 \item{raw}{}
 
@@ -14,12 +14,8 @@
 
 }
 \description{
-.. content for \description{} (no empty lines) ..
-}
-\details{
-.. content for \details{} ..
+Function that defines the CalciumExperiment class
 }
 \author{
 Muad Abd El Hay
-#' @export
 }

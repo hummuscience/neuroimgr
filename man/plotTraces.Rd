@@ -2,9 +2,9 @@
 % Please edit documentation in R/plotters.R
 \name{plotTraces}
 \alias{plotTraces}
-\title{}
+\title{Function to plot CalciumExperiment objects.}
 \usage{
-plotTraces(x, slot = "raw", order = FALSE, cluster = FALSE)
+plotTraces(x, slot = "raw", order = FALSE, cluster = FALSE, scale = TRUE)
 }
 \arguments{
 \item{x}{}
@@ -19,10 +19,10 @@ plotTraces(x, slot = "raw", order = FALSE, cluster = FALSE)
 
 }
 \description{
-.. content for \description{} (no empty lines) ..
+Plots staggered line plots of each ROI. Defaults to "raw" values without any additional modifications.
 }
 \details{
-.. content for \details{} ..
+Can be set to order the traces or even cluster them before plotting. Traces are scaled by default.
 }
 \author{
 Muad Abd El Hay

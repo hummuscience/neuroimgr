@@ -30,10 +30,7 @@ colScale(
 
 }
 \description{
-.. content for \description{} (no empty lines) ..
-}
-\details{
-.. content for \details{} ..
+Function for fast center and scaling of matrix columns.
 }
 \references{
 https://hopstat.wordpress.com/2016/02/23/a-faster-scale-function/
