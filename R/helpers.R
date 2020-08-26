@@ -60,6 +60,55 @@ splitByStimulus <- function(cexp, stim.table, stim.table.type = "time", buffer =
   return(mcexp)
 }
 
+##' Function to estimate spikes and binarize a CalciumExperiment object.
+##' @title Estimate spikes and binarize data using the L0 method by Jewell et al. 2019
+##' @param cexp CalciumExperiment object to binarize.
+##' @param slot The assay slot to use for binarization. Defaults to "normalized".
+##' @param ... Additional parameters that can be passed to the spike estimation function.
+##' @return
+##' @export
+##' @author Muad Abd El Hay
+binarize <- function(cexp, slot = "normalized", ...){
+
+  if (slot %in% names(assays(cexp))) {
+    
+    normalized.data <- assay(cexp, slot)
+
+  } else {
+    
+    stop("no assay with given name found, please normalize the data first with the function normalize or assign another slot to perform binarization on.")
+    
+  }
+  
+  estimatedSpikes <- apply(normalized.data, 2, extractSpikesFromLZeroFit)
+
+  colnames(estimatedSpikes) <- colnames(cexp)
+  rownames(estimatedSpikes) <- rownames(cexp)
+  
+  assay(cexp, "l0spikes") <- estimatedSpikes
+
+  return(cexp)
+  
+}
+
+##' Utility function to extract the estimated spikes based on the FastLZeroSpikeInference package by Jewell et al. 2019.
+##' @title Fit L0 spike inference model and extract spikes according to Jewell et al. 2019
+##' @param x A vector containing the normalized fluorescence trace.
+##' @param gam numeric. between 0 and 1. Parameter to tune spike inference.
+##' @param lambda numeric. between 0 and 1. Parameter to tune spike inference.
+##' @param constraint logical. Whether to run the fit with constrain or not.
+##' @importFrom FastLZeroSpikeInference estimate_spikes
+##' @return 
+##' @author Muad Abd El Hay
+extractSpikesFromLZeroFit <- function(x, gam = 0.8, lambda = 0.1, constraint = FALSE) {
+
+  fit <- estimate_spikes(x, gam = gam, lambda = lambda, constraint = constraint)
+  spikes <- rep(0, times = length(x))
+  spikes[fit$spikes] <- 1
+
+  return(spikes)
+  
+}
 ##' @title Fast center and/or scale columns using the matrixStats functions.
 ##' @param x 
 ##' @param center 
