@@ -1,0 +1,30 @@
+Package: neuroimgr
+Type: Package
+Title: A calcium-imaging data post-processing package
+Version: 0.1.1
+Authors@R: 
+    person(given = "Muad",
+           family = "Abd El Hay",
+           role = c("aut", "cre"),
+           email = "muad.abdelhay@gmail.com",
+           comment = c(ORCID = "0000-0002-5082-1216"))
+Description: This package implements the CalciumExperiment object (based on the SummarizedExperiment object) with the intention to ease the manipulation and analysis of calcium imaging data. It implements the import of data generated with commonly used calcium imaging analysis pipelines such as Suite2p and simple methods of visualizing the data. Furthermore, it contains functions to split calcium imaging experiments by stimulus (using the MultiAssayExperiment object) as well as bsic normalization and spike inference methods.
+License: `Artistic-2.0`
+biocViews: Software, CellBiology, MathematicalBiology, DataImport, 
+Depends: SummarizedExperiment, S4Vectors, MultiAssayExperiment
+Imports:methods,
+	ggplot2,
+	magrittr,
+	baseline,
+	BiocGenerics,
+	RColorBrewer,
+	rlang,
+	matrixStats,
+	stats,
+	FastLZeroSpikeInference,
+	reticulate
+Suggests:
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
