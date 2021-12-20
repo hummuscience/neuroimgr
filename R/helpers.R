@@ -166,6 +166,7 @@ colScale = function(x,
 ##' @return 
 ##' @author Stephen Eglen
 ##' @references https://www.itl.nist.gov/div898/software/dataplot/refman2/auxillar/exposmoo.htm
+<<<<<<< variant A
 ## expSmooth <- function(x, alpha=0.3) {
 ##   y = x
 ##   n = length(x)
@@ -219,16 +220,30 @@ baks <- function(spikes, t, a = 4, b = 0.975) {
       k = (1 / (sqrt(2 * pi) * h)) * exp(-((t - spike_times[j])**2) / (2*h**2))
       firing_rate = firing_rate + k                           
     }
+>>>>>>> variant B
+expSmooth <- function(x, alpha=0.3) {
+  y = x
+  n = length(x)
+  for (i in 2:n) {
+    y[i] = (alpha*x[i]) + ((1-alpha)*y[i-1])
+======= end
   }
+<<<<<<< variant A
   return(firing_rate)
   
+>>>>>>> variant B
+  y
+======= end
 }
 
+<<<<<<< variant A
 ##' Helper function to create an assay name when none is supplied.
 ##' @title Create a random alpha-numeric string of length n.
 ##' @param n Length of the alphanumeric string.
 ##' @return A string with random alpha-numerics of length n.
 ##' @author Muad Abd El Hay
+>>>>>>> variant B
+======= end
 randomAlphaNum <- function(n = 1) {
   a <- do.call(paste0, replicate(5, sample(LETTERS, n, TRUE), FALSE))
   paste0(a, sprintf("%04d", sample(9999, n, TRUE)), sample(LETTERS, n, TRUE))
@@ -239,10 +254,19 @@ randomAlphaNum <- function(n = 1) {
 ##' @param x 
 ##' @param method 
 ##' @param ... 
+<<<<<<< variant A
 ##' @return A baseline-corrected trace.
+>>>>>>> variant B
+##' @return 
+======= end
 ##' @author Muad Abd El Hay
 ##' @importFrom baseline baseline
+<<<<<<< variant A
 estimateBaselines <- function(x, method = "modpolyfit", ...) {
   res <- baseline::baseline(t(x), method, ...)
+>>>>>>> variant B
+estimateBaselines <- function(x, method = "irls", ...) {
+  res <- baseline(t(x), method, ...)
+======= end
   return(t(res@baseline))
 }
